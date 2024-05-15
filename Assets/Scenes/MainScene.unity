@@ -135,7 +135,7 @@ GameObject:
   - component: {fileID: 115677009}
   - component: {fileID: 115677011}
   m_Layer: 0
-  m_Name: Grid
+  m_Name: MapGrid
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -181,7 +181,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb096b7d4ed833b4b8b351cc674dc0d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  startMapSize: {x: 10, y: 10}
   managerUI: {fileID: 603046782}
+  grid: {fileID: 115677009}
   tilemap: {fileID: 1341595595}
   traversableTile: {fileID: 11400000, guid: f1adfc94eac53ce459064dfce0b60858, type: 2}
   obstacleTile: {fileID: 11400000, guid: 9a400ee23037ae04fa08ec63d23c8051, type: 2}
@@ -1027,6 +1029,7 @@ GameObject:
   - component: {fileID: 963194228}
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
+  - component: {fileID: 963194229}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1102,12 +1105,26 @@ Transform:
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 10, z: 0}
+  m_LocalPosition: {x: 0, y: 20, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+--- !u!114 &963194229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58395c1969094b44ebec5f7db17b3182, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxSpeed: 20
+  acceleration: 15
 --- !u!1 &1341595592
 GameObject:
   m_ObjectHideFlags: 0
