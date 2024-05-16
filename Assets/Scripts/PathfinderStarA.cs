@@ -7,14 +7,7 @@ public class PathfinderStarA
     public List<Vector2Int> FindPath(Node[,] nodes, Vector2Int start, Vector2Int target)
     {
         var path = new List<Vector2Int>();
-        
-        if (start.x < 0 || start.x >= nodes.GetLength(0) || start.y < 0 || start.y >= nodes.GetLength(1) ||
-            target.x < 0 || target.x >= nodes.GetLength(0) || target.y < 0 || target.y >= nodes.GetLength(1))
-        {
-            Debug.LogError("Start or target node is out of bounds.");
-            return path; 
-        }
-        
+
         var openNodes = new List<Node>();
         var closedNodes = new HashSet<Node>();
         
@@ -29,7 +22,7 @@ public class PathfinderStarA
             for (int i = 1; i < openNodes.Count; i++)
             {
                 if (openNodes[i].FCost < currentNode.FCost || 
-                    (openNodes[i].FCost == currentNode.FCost && openNodes[i].hCost < currentNode.hCost))
+                    (openNodes[i].FCost == currentNode.FCost && openNodes[i].HCost < currentNode.HCost))
                 {
                     currentNode = openNodes[i];
                 }
@@ -46,16 +39,16 @@ public class PathfinderStarA
             
             foreach (Node neighbor in GetNeighbors(nodes, currentNode))
             {
-                if (!neighbor.traversable || closedNodes.Contains(neighbor))
+                if (!neighbor.Traversable || closedNodes.Contains(neighbor))
                     continue;
                 
-                float tentativeGCost = currentNode.gCost + 1;
+                float tentativeGCost = currentNode.GCost + 1;
                 
-                if (!openNodes.Contains(neighbor) || tentativeGCost < neighbor.gCost)
+                if (!openNodes.Contains(neighbor) || tentativeGCost < neighbor.GCost)
                 {
-                    neighbor.gCost = tentativeGCost;
-                    neighbor.hCost = CalculateHCost(neighbor.position, target);
-                    neighbor.parent = currentNode;
+                    neighbor.GCost = tentativeGCost;
+                    neighbor.HCost = CalculateHCost(neighbor.Position, target);
+                    neighbor.Parent = currentNode;
                     
                     if (!openNodes.Contains(neighbor))
                         openNodes.Add(neighbor);
@@ -63,7 +56,6 @@ public class PathfinderStarA
             }
         }
         
-        Debug.LogError("No path found.");
         return path;
     }
     
@@ -80,8 +72,8 @@ public class PathfinderStarA
 
         while (currentNode != startNode)
         {
-            path.Add(currentNode.position);
-            currentNode = currentNode.parent;
+            path.Add(currentNode.Position);
+            currentNode = currentNode.Parent;
         }
 
         path.Reverse(); 
@@ -99,7 +91,7 @@ public class PathfinderStarA
 
         foreach (Vector2Int dir in directions)
         {
-            Vector2Int neighborPos = node.position + dir;
+            Vector2Int neighborPos = node.Position + dir;
 
             if (neighborPos.x >= 0 && neighborPos.x < width && neighborPos.y >= 0 && neighborPos.y < height)
             {

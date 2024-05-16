@@ -22,13 +22,18 @@ public class MapGenerator : MonoBehaviour
     private (Vector3Int start, Vector3Int finish) _waypoints;
     private PathfinderStarA _pathfinder;
     private Node[,] _nodes;
-    private bool _isPathGeneratingActive;
+    private List<Vector2Int> _path;
+
+    private CurrentActivity _currentActivity;
 
     private void OnEnable()
     {
         managerUI.OnMapGenerateClicked += GenerateMap;
         managerUI.OnGeneratePathClicked += GeneratePath;
         managerUI.OnStartPathGenerationClicked += StartPathGeneration;
+        managerUI.OnRandomizeObstaclesClicked += RandomizeObstacles;
+        managerUI.OnDrawObstaclesClicked += DrawObstacles;
+        managerUI.OnFinishDrawObstaclesClicked += FinishDrawingObstacles;
         inputManager.OnGridClicked += ProcessGridClick;
     }
 
@@ -37,32 +42,50 @@ public class MapGenerator : MonoBehaviour
         managerUI.OnMapGenerateClicked -= GenerateMap;
         managerUI.OnGeneratePathClicked -= GeneratePath;
         managerUI.OnStartPathGenerationClicked -= StartPathGeneration;
+        managerUI.OnRandomizeObstaclesClicked -= RandomizeObstacles;
+        managerUI.OnDrawObstaclesClicked -= DrawObstacles;
+        managerUI.OnFinishDrawObstaclesClicked -= FinishDrawingObstacles;
         inputManager.OnGridClicked -= ProcessGridClick;
     }
 
     private void Start()
     {
         GenerateMap(startMapSize.x, startMapSize.y);
+        managerUI.Init(startMapSize);
+        
         _pathfinder = new PathfinderStarA();
     }
 
     private void ProcessGridClick(Vector3 clickPos)
     {
-        if (!_isPathGeneratingActive) return;
-
         var cellPosition = grid.WorldToCell(clickPos);
+        if (cellPosition.x >= _nodes.GetLength(0) || cellPosition.y >= _nodes.GetLength(1)) return;
+        if (cellPosition.x < 0 || cellPosition.y < 0) return;
+        if (!_nodes[cellPosition.x, cellPosition.y].Traversable) return;
+        
+        if (_currentActivity == CurrentActivity.PreparingPathfinding) MakeWaypointTile(cellPosition);
+        if (_currentActivity == CurrentActivity.DrawingObstacles) MakeObstacleTile(cellPosition);
+    }
 
+    private void MakeObstacleTile(Vector3Int cellPosition)
+    {
+        tilemap.SetTile(cellPosition, obstacleTile);
+        _nodes[cellPosition.x, cellPosition.y].Traversable = false;
+    }
+
+    private void MakeWaypointTile(Vector3Int cellPosition)
+    {
         if (_waypoints.start == Vector3Int.one)
         {
             _waypoints.start = cellPosition;
             tilemap.SetTile(_waypoints.start, wayTile);
-            managerUI.ProgressPathfindingSequence(ManagerUI.PathfindingSequenceUI.ChooseFinishTile);
+            managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.ChooseFinishTile);
         }
         else if (_waypoints.finish == Vector3Int.one)
         {
             _waypoints.finish = cellPosition;
             tilemap.SetTile(_waypoints.finish, wayTile);
-            managerUI.ProgressPathfindingSequence(ManagerUI.PathfindingSequenceUI.FindPath);
+            managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.ReadyToFindPath);
         }
     }
 
@@ -83,23 +106,52 @@ public class MapGenerator : MonoBehaviour
         CenterCamera(width, height);
     }
 
+    private void RandomizeObstacles()
+    {
+        for (int i = 0; i < _nodes.GetLength(0); i++)
+        {
+            for (int j = 0; j < _nodes.GetLength(1); j++)
+            {
+                // Just some magic number which feels good
+                if (UnityEngine.Random.value < 0.2f)
+                {
+                    MakeObstacleTile(new Vector3Int(i, j, 0));
+                }
+            }
+        }
+    }
+
+    private void FinishDrawingObstacles()
+    {
+        _currentActivity = CurrentActivity.Nothing;
+    }
+    
+
+    private void DrawObstacles()
+    {
+        _currentActivity = CurrentActivity.DrawingObstacles;
+    }
+
     private void StartPathGeneration()
     {
-        _isPathGeneratingActive = true;
+        _currentActivity = CurrentActivity.PreparingPathfinding;
+        _waypoints = new ValueTuple<Vector3Int, Vector3Int>(Vector3Int.one, Vector3Int.one);
     }
 
     private void GeneratePath()
     {
-        var path = FindPath(
+        _path = FindPath(
             new Vector2Int(_waypoints.start.x, _waypoints.start.y), 
             new Vector2Int(_waypoints.finish.x, _waypoints.finish.y));
         
-        foreach (var node in path)
+        if (_path.Count == 0) managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathNotFound);
+        
+        foreach (var node in _path)
         {
             tilemap.SetTile(new Vector3Int(node.x, node.y, 0), wayTile);
         }
-        
-        _isPathGeneratingActive = false;
+
+        _currentActivity = CurrentActivity.Nothing;
     }
 
     private void CenterCamera(int width, int height)
@@ -112,7 +164,6 @@ public class MapGenerator : MonoBehaviour
     
     private void ClearMap()
     {
-        _waypoints = new ValueTuple<Vector3Int, Vector3Int>(Vector3Int.one, Vector3Int.one);
         foreach (var pos in tilemap.cellBounds.allPositionsWithin)
         {
             tilemap.SetTile(pos, null);
@@ -122,5 +173,12 @@ public class MapGenerator : MonoBehaviour
     private List<Vector2Int> FindPath(Vector2Int start, Vector2Int target)
     {
         return _pathfinder.FindPath(_nodes, start, target);
+    }
+
+    private enum CurrentActivity
+    {
+        Nothing,
+        PreparingPathfinding,
+        DrawingObstacles
     }
 }
