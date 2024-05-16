@@ -10,31 +10,60 @@ public class MapGenerator : MonoBehaviour
     
     [Header("General references")] 
     [SerializeField] private ManagerUI managerUI; // Ofc it's better to have some interface, and inject reference here, but for this demo straightforward ref is enough
+    [SerializeField] private InputManager inputManager; // Same goes for here
     
     [Header("Grid references")] 
     [SerializeField] private Grid grid;
     [SerializeField] private Tilemap tilemap;
     [SerializeField] private Tile traversableTile;
     [SerializeField] private Tile obstacleTile;
+    [SerializeField] private Tile wayTile;
 
+    private (Vector3Int start, Vector3Int finish) _waypoints;
     private PathfinderStarA _pathfinder;
     private Node[,] _nodes;
+    private bool _isPathGeneratingActive;
 
     private void OnEnable()
     {
         managerUI.OnMapGenerateClicked += GenerateMap;
+        managerUI.OnGeneratePathClicked += GeneratePath;
+        managerUI.OnStartPathGenerationClicked += StartPathGeneration;
+        inputManager.OnGridClicked += ProcessGridClick;
     }
 
     private void OnDisable()
     {
         managerUI.OnMapGenerateClicked -= GenerateMap;
+        managerUI.OnGeneratePathClicked -= GeneratePath;
+        managerUI.OnStartPathGenerationClicked -= StartPathGeneration;
+        inputManager.OnGridClicked -= ProcessGridClick;
     }
 
     private void Start()
     {
         GenerateMap(startMapSize.x, startMapSize.y);
         _pathfinder = new PathfinderStarA();
-        FindPath(new Vector2Int(0, 0), new Vector2Int(5, 10)); // For debug purposes
+    }
+
+    private void ProcessGridClick(Vector3 clickPos)
+    {
+        if (!_isPathGeneratingActive) return;
+
+        var cellPosition = grid.WorldToCell(clickPos);
+
+        if (_waypoints.start == Vector3Int.one)
+        {
+            _waypoints.start = cellPosition;
+            tilemap.SetTile(_waypoints.start, wayTile);
+            managerUI.ProgressPathfindingSequence(ManagerUI.PathfindingSequenceUI.ChooseFinishTile);
+        }
+        else if (_waypoints.finish == Vector3Int.one)
+        {
+            _waypoints.finish = cellPosition;
+            tilemap.SetTile(_waypoints.finish, wayTile);
+            managerUI.ProgressPathfindingSequence(ManagerUI.PathfindingSequenceUI.FindPath);
+        }
     }
 
     private void GenerateMap(int width, int height)
@@ -54,6 +83,25 @@ public class MapGenerator : MonoBehaviour
         CenterCamera(width, height);
     }
 
+    private void StartPathGeneration()
+    {
+        _isPathGeneratingActive = true;
+    }
+
+    private void GeneratePath()
+    {
+        var path = FindPath(
+            new Vector2Int(_waypoints.start.x, _waypoints.start.y), 
+            new Vector2Int(_waypoints.finish.x, _waypoints.finish.y));
+        
+        foreach (var node in path)
+        {
+            tilemap.SetTile(new Vector3Int(node.x, node.y, 0), wayTile);
+        }
+        
+        _isPathGeneratingActive = false;
+    }
+
     private void CenterCamera(int width, int height)
     {
         var cellGap = grid.cellGap;
@@ -64,6 +112,7 @@ public class MapGenerator : MonoBehaviour
     
     private void ClearMap()
     {
+        _waypoints = new ValueTuple<Vector3Int, Vector3Int>(Vector3Int.one, Vector3Int.one);
         foreach (var pos in tilemap.cellBounds.allPositionsWithin)
         {
             tilemap.SetTile(pos, null);

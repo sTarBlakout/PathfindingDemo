@@ -1,14 +1,41 @@
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class InputManager : MonoBehaviour
 {
     [SerializeField] private float maxSpeed;
     [SerializeField] public float acceleration;
+
+    public Action<Vector3> OnGridClicked;
     
     private float _currentSpeed = 0f;
+    private Camera _camera;
+
+    private void Start()
+    {
+        _camera = GetComponent<Camera>();
+    }
 
     private void Update()
+    {
+        ProcessCameraMovement();
+        ProcessGridClick();
+    }
+
+    private void ProcessGridClick()
+    {
+        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
+        {
+            var ray = _camera.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out var hit))
+            {
+                OnGridClicked?.Invoke(hit.point);
+            }
+        }
+    }
+
+    private void ProcessCameraMovement()
     {
         var horizontalInput = Input.GetAxis("Horizontal");
         var verticalInput = Input.GetAxis("Vertical");
