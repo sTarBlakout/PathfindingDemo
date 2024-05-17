@@ -87,6 +87,7 @@ public class MapGenerator : MonoBehaviour
         }
         else if (_waypoints.finish == Vector3Int.one)
         {
+            if (cellPosition == _waypoints.start) return;
             _waypoints.finish = cellPosition;
             tilemap.SetTile(_waypoints.finish, wayTile);
             managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.ReadyToFindPath);

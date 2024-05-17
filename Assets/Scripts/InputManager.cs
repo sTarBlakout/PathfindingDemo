@@ -1,15 +1,14 @@
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 
 public class InputManager : MonoBehaviour
 {
-    [SerializeField] private float maxSpeed;
-    [SerializeField] public float acceleration;
+    [SerializeField] private float speed;
 
     public Action<Vector3> OnGridClicked;
     
-    private float _currentSpeed = 0f;
     private Camera _camera;
 
     private void Start()
@@ -25,7 +24,7 @@ public class InputManager : MonoBehaviour
 
     private void ProcessGridClick()
     {
-        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
+        if (Input.GetMouseButton(0) && !EventSystem.current.IsPointerOverGameObject())
         {
             var ray = _camera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out var hit))
@@ -41,14 +40,6 @@ public class InputManager : MonoBehaviour
         var verticalInput = Input.GetAxis("Vertical");
         
         var movement = new Vector3(horizontalInput, 0, verticalInput).normalized;
-        if (movement.magnitude > 0)
-        {
-            _currentSpeed = Mathf.MoveTowards(_currentSpeed, maxSpeed, acceleration * Time.deltaTime);
-            transform.position += movement * _currentSpeed * Time.deltaTime;
-        }
-        else
-        {
-            _currentSpeed = 0;
-        }
+        if (movement.magnitude > 0) transform.position += movement * speed * Time.deltaTime;
     }
 }
