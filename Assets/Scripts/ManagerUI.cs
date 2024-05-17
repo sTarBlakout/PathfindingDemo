@@ -1,20 +1,24 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class ManagerUI : MonoBehaviour
 {
+    [SerializeField] private TMP_Text guideText;
+    
     [Header("Map Generation Components")] 
     [SerializeField] private GameObject mapGenerationGroup;
     [SerializeField] private TMP_InputField mapWidthInputField;
     [SerializeField] private TMP_InputField mapHeightInputField;
     [SerializeField] private Button generateMapButton;
 
-    [Header("Path Generation Components")] 
+    [Header("Path Generation Components")]
+    [SerializeField] private GameObject pathGenerationGroup;
     [SerializeField] private Button startPathGenerationButton;
     [SerializeField] private Button generatePathButton;
-    [SerializeField] private TMP_Text pathGenerationGuide;
+    [SerializeField] private Button launchCharacterButton;
     
     [Header("Obstacle Generation Components")]
     [SerializeField] private GameObject obstacleGenerationGroup;
@@ -28,6 +32,7 @@ public class ManagerUI : MonoBehaviour
     public Action OnRandomizeObstaclesClicked;
     public Action OnDrawObstaclesClicked;
     public Action OnFinishDrawObstaclesClicked;
+    public Action OnLaunchCharacterClicked;
 
     private void Start()
     {
@@ -37,9 +42,11 @@ public class ManagerUI : MonoBehaviour
         randomizeObstaclesButton.onClick.AddListener(OnRandomizeObstaclesButtonClicked);
         drawObstaclesButton.onClick.AddListener(OnDrawObstacleButtonClicked);
         finishDrawingButton.onClick.AddListener(OnFinishDrawObstaclesButtonClicked);
+        launchCharacterButton.onClick.AddListener(OnLaunchCharacterButtonClicked);
         
         generatePathButton.gameObject.SetActive(false);
         finishDrawingButton.gameObject.SetActive(false);
+        launchCharacterButton.gameObject.SetActive(false);
     }
 
     public void Init(Vector2Int startMapSize)
@@ -56,17 +63,23 @@ public class ManagerUI : MonoBehaviour
                 mapGenerationGroup.SetActive(false);
                 obstacleGenerationGroup.SetActive(false);
                 startPathGenerationButton.gameObject.SetActive(false);
-                pathGenerationGuide.text = "Choose Start Tile";
+                guideText.text = "Choose Start Tile";
                 break;
             case PathfindingSequenceUI.ChooseFinishTile:
-                pathGenerationGuide.text = "Choose Finish Tile";
+                guideText.text = "Choose Finish Tile";
                 break;
             case PathfindingSequenceUI.ReadyToFindPath:
-                pathGenerationGuide.text = "";
+                guideText.text = "";
                 generatePathButton.gameObject.SetActive(true);
                 break;
+            case PathfindingSequenceUI.PathFound:
+                launchCharacterButton.gameObject.SetActive(true);
+                break;
             case PathfindingSequenceUI.PathNotFound:
-                pathGenerationGuide.text = "No path between chosen cells!";
+                guideText.text = "No path between chosen cells!";
+                break;
+            case PathfindingSequenceUI.PathReset:
+                launchCharacterButton.gameObject.SetActive(false);
                 break;
         }
     }
@@ -76,16 +89,16 @@ public class ManagerUI : MonoBehaviour
         switch (seq)
         {
             case DrawObstaclesSequenceUI.StartDrawing:
-                pathGenerationGuide.text = "Click on the tiles that will be obstacles";
+                guideText.text = "Click on the tiles that will be obstacles";
                 mapGenerationGroup.SetActive(false);
-                startPathGenerationButton.gameObject.SetActive(false);
+                pathGenerationGroup.SetActive(false);
                 drawObstaclesButton.gameObject.SetActive(false);
                 finishDrawingButton.gameObject.SetActive(true);
                 break;
             case DrawObstaclesSequenceUI.FinishDrawing:
                 mapGenerationGroup.SetActive(true);
-                pathGenerationGuide.text = "";
-                startPathGenerationButton.gameObject.SetActive(true);
+                guideText.text = "";
+                pathGenerationGroup.SetActive(true);
                 finishDrawingButton.gameObject.SetActive(false);
                 drawObstaclesButton.gameObject.SetActive(true);
                 break;
@@ -97,7 +110,7 @@ public class ManagerUI : MonoBehaviour
         if (int.TryParse(mapWidthInputField.text, out var width) && int.TryParse(mapHeightInputField.text, out var height))
             OnMapGenerateClicked?.Invoke(width, height);
         else
-            Debug.LogError("Can't generate a map, enter width and height!");
+            Debug.Log("Can't generate a map, enter width and height!");
     }
 
     private void OnRandomizeObstaclesButtonClicked()
@@ -123,6 +136,11 @@ public class ManagerUI : MonoBehaviour
         OnStartPathGenerationClicked?.Invoke();
     }
 
+    private void OnLaunchCharacterButtonClicked()
+    {
+        OnLaunchCharacterClicked?.Invoke();
+    }
+
     private void OnGeneratePathButtonClicked()
     {
         OnGeneratePathClicked?.Invoke();
@@ -137,7 +155,9 @@ public class ManagerUI : MonoBehaviour
         ChooseStartTile,
         ChooseFinishTile,
         ReadyToFindPath,
-        PathNotFound
+        PathFound,
+        PathNotFound,
+        PathReset
     }
 
     public enum DrawObstaclesSequenceUI

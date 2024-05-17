@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -11,6 +12,7 @@ public class MapGenerator : MonoBehaviour
     [Header("General references")] 
     [SerializeField] private ManagerUI managerUI; // Ofc it's better to have some interface, and inject reference here, but for this demo straightforward ref is enough
     [SerializeField] private InputManager inputManager; // Same goes for here
+    [SerializeField] private CharacterBehavior characterBehavior;
     
     [Header("Grid references")] 
     [SerializeField] private Grid grid;
@@ -34,6 +36,7 @@ public class MapGenerator : MonoBehaviour
         managerUI.OnRandomizeObstaclesClicked += RandomizeObstacles;
         managerUI.OnDrawObstaclesClicked += DrawObstacles;
         managerUI.OnFinishDrawObstaclesClicked += FinishDrawingObstacles;
+        managerUI.OnLaunchCharacterClicked += LaunchCharacter;
         inputManager.OnGridClicked += ProcessGridClick;
     }
 
@@ -45,6 +48,7 @@ public class MapGenerator : MonoBehaviour
         managerUI.OnRandomizeObstaclesClicked -= RandomizeObstacles;
         managerUI.OnDrawObstaclesClicked -= DrawObstacles;
         managerUI.OnFinishDrawObstaclesClicked -= FinishDrawingObstacles;
+        managerUI.OnLaunchCharacterClicked -= LaunchCharacter;
         inputManager.OnGridClicked -= ProcessGridClick;
     }
 
@@ -92,6 +96,7 @@ public class MapGenerator : MonoBehaviour
     private void GenerateMap(int width, int height)
     {
         ClearMap();
+        ResetPath(null);
         
         _nodes = new Node[width, height];
         for (int i = 0; i < width; i++)
@@ -108,6 +113,7 @@ public class MapGenerator : MonoBehaviour
 
     private void RandomizeObstacles()
     {
+        ResetPath(traversableTile);
         for (int i = 0; i < _nodes.GetLength(0); i++)
         {
             for (int j = 0; j < _nodes.GetLength(1); j++)
@@ -126,15 +132,34 @@ public class MapGenerator : MonoBehaviour
         _currentActivity = CurrentActivity.Nothing;
     }
     
-
     private void DrawObstacles()
     {
         _currentActivity = CurrentActivity.DrawingObstacles;
+        ResetPath(traversableTile);
     }
 
     private void StartPathGeneration()
     {
         _currentActivity = CurrentActivity.PreparingPathfinding;
+        ResetPath(traversableTile);
+    }
+
+    private void ResetPath(Tile resetTile)
+    {
+        managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathReset);
+        characterBehavior.ForceStop();
+        
+        if (_path != null)
+        {
+            tilemap.SetTile(new Vector3Int(_waypoints.start.x, _waypoints.start.y, 0), traversableTile);
+            tilemap.SetTile(new Vector3Int(_waypoints.finish.x, _waypoints.finish.y, 0), traversableTile);
+            foreach (var waypoint in _path)
+            {
+                tilemap.SetTile(new Vector3Int(waypoint.x, waypoint.y, 0), resetTile);
+            }
+        }
+
+        _path = null;
         _waypoints = new ValueTuple<Vector3Int, Vector3Int>(Vector3Int.one, Vector3Int.one);
     }
 
@@ -145,6 +170,7 @@ public class MapGenerator : MonoBehaviour
             new Vector2Int(_waypoints.finish.x, _waypoints.finish.y));
         
         if (_path.Count == 0) managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathNotFound);
+        else managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathFound);
         
         foreach (var node in _path)
         {
@@ -173,6 +199,20 @@ public class MapGenerator : MonoBehaviour
     private List<Vector2Int> FindPath(Vector2Int start, Vector2Int target)
     {
         return _pathfinder.FindPath(_nodes, start, target);
+    }
+
+    private void LaunchCharacter()
+    {
+        var realWorldPath = new List<Vector3>();
+        var offset = grid.cellSize.x / 2f;
+        
+        realWorldPath.Add(grid.CellToWorld(_waypoints.start) + new Vector3(offset, 0, offset));
+        realWorldPath.AddRange(_path.Select(waypoint => 
+            grid.CellToWorld(new Vector3Int(waypoint.x, waypoint.y, 0)) + 
+            new Vector3(offset, 0, offset)));
+        realWorldPath.Add(grid.CellToWorld(_waypoints.finish)  + new Vector3(offset, 0, offset));
+        
+        characterBehavior.FollowPath(realWorldPath);
     }
 
     private enum CurrentActivity
