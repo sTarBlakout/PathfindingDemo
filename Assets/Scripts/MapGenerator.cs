@@ -166,12 +166,14 @@ public class MapGenerator : MonoBehaviour
 
     private void GeneratePath()
     {
+        var timeBeforeGeneration = Time.realtimeSinceStartup;
         _path = FindPath(
             new Vector2Int(_waypoints.start.x, _waypoints.start.y), 
             new Vector2Int(_waypoints.finish.x, _waypoints.finish.y));
+        var processingTime = Time.realtimeSinceStartup - timeBeforeGeneration;
         
         if (_path.Count == 0) managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathNotFound);
-        else managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathFound);
+        else managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathFound, processingTime);
         
         foreach (var node in _path)
         {

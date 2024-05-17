@@ -47,6 +47,8 @@ public class ManagerUI : MonoBehaviour
         generatePathButton.gameObject.SetActive(false);
         finishDrawingButton.gameObject.SetActive(false);
         launchCharacterButton.gameObject.SetActive(false);
+
+        guideText.text = "Welcome to my demo! Use WASD to move around the map and click some self-explanatory buttons :)";
     }
 
     public void Init(Vector2Int startMapSize)
@@ -55,7 +57,7 @@ public class ManagerUI : MonoBehaviour
         mapHeightInputField.text = startMapSize.y.ToString();
     }
 
-    public void ProcessPathfindingSequence(PathfindingSequenceUI seq)
+    public void ProcessPathfindingSequence(PathfindingSequenceUI seq, float generationTime = 0f)
     {
         switch (seq)
         {
@@ -74,12 +76,14 @@ public class ManagerUI : MonoBehaviour
                 break;
             case PathfindingSequenceUI.PathFound:
                 launchCharacterButton.gameObject.SetActive(true);
+                guideText.text = $"Path generated in {generationTime} seconds";
                 break;
             case PathfindingSequenceUI.PathNotFound:
                 guideText.text = "No path between chosen cells!";
                 break;
             case PathfindingSequenceUI.PathReset:
                 launchCharacterButton.gameObject.SetActive(false);
+                guideText.text = "";
                 break;
         }
     }
@@ -89,7 +93,7 @@ public class ManagerUI : MonoBehaviour
         switch (seq)
         {
             case DrawObstaclesSequenceUI.StartDrawing:
-                guideText.text = "Click on the tiles that will be obstacles";
+                guideText.text = "Draw some obstacles!";
                 mapGenerationGroup.SetActive(false);
                 pathGenerationGroup.SetActive(false);
                 drawObstaclesButton.gameObject.SetActive(false);
