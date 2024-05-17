@@ -136,8 +136,8 @@ public class ManagerUI : MonoBehaviour
 
     private void StartPathGenerationButtonClicked()
     {
-        ProcessPathfindingSequence(PathfindingSequenceUI.ChooseStartTile);
         OnStartPathGenerationClicked?.Invoke();
+        ProcessPathfindingSequence(PathfindingSequenceUI.ChooseStartTile);
     }
 
     private void OnLaunchCharacterButtonClicked()

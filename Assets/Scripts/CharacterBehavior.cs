@@ -6,23 +6,20 @@ public class CharacterBehavior : MonoBehaviour
 {
     [SerializeField] private float speed = 5f;
     [SerializeField] private float rotationSpeed = 10f;
-
-    private Animator _animator;
+    [SerializeField] private Animator animator;
+    
     private Coroutine _movementCoroutine;
     
     private void Start()
     {
-        _animator = GetComponent<Animator>();
-        gameObject.SetActive(false);
+        animator.gameObject.SetActive(false);
     }
 
     public void FollowPath(List<Vector3> path)
     {
         if (_movementCoroutine != null) return;
-        
-        gameObject.SetActive(true);
-        _animator.SetFloat("Speed", speed);
-        _animator.SetFloat("MotionSpeed", speed / 4);
+
+        animator.gameObject.SetActive(true);
         _movementCoroutine = StartCoroutine(ProcessMovement(path));
     }
 
@@ -30,7 +27,7 @@ public class CharacterBehavior : MonoBehaviour
     {
         if (_movementCoroutine != null) StopCoroutine(_movementCoroutine);
         _movementCoroutine = null;
-        gameObject.SetActive(false);
+        animator.gameObject.SetActive(false);
     }
     
     private IEnumerator ProcessMovement(List<Vector3> path)
@@ -63,7 +60,7 @@ public class CharacterBehavior : MonoBehaviour
             transform.rotation = targetRotation;
         }
         
-        gameObject.SetActive(false);
+        animator.gameObject.SetActive(false);
         _movementCoroutine = null;
     }
 }
