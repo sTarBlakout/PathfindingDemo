@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PathfinderStarA 
 {
-    public List<Vector2Int> FindPath(Node[,] nodes, Vector2Int start, Vector2Int target)
+    public List<Vector2Int> FindPath(Node[,] nodes, Vector2Int start, Vector2Int target, ManagerUI.Heuristic heuristic)
     {
         var path = new List<Vector2Int>();
 
@@ -47,7 +47,7 @@ public class PathfinderStarA
                 if (!openNodes.Contains(neighbor) || tentativeGCost < neighbor.GCost)
                 {
                     neighbor.GCost = tentativeGCost;
-                    neighbor.HCost = CalculateHCost(neighbor.Position, target);
+                    neighbor.HCost = CalculateHCost(neighbor.Position, target, heuristic);
                     neighbor.Parent = currentNode;
                     
                     if (!openNodes.Contains(neighbor))
@@ -59,10 +59,18 @@ public class PathfinderStarA
         return path;
     }
     
-    private float CalculateHCost(Vector2Int from, Vector2Int to)
+    private float CalculateHCost(Vector2Int from, Vector2Int to, ManagerUI.Heuristic heuristic)
     {
-        // Manhattan distance heuristic
-        return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+        if (heuristic == ManagerUI.Heuristic.Manhattan)
+        {
+            return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+        }
+        else // Chebyshev
+        {
+            int dx = Mathf.Abs(to.x - from.x);
+            int dy = Mathf.Abs(to.y - from.y);
+            return Mathf.Max(dx, dy);
+        }
     }
     
     private List<Vector2Int> RetracePath(Node startNode, Node endNode)

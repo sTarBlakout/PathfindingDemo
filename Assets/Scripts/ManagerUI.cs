@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -7,6 +8,11 @@ using UnityEngine.UI;
 public class ManagerUI : MonoBehaviour
 {
     [SerializeField] private TMP_Text guideText;
+
+    [Header("Records Components")] 
+    [SerializeField] private GameObject recordsGroup;
+    [SerializeField] private Button clearRecordsButton;
+    [SerializeField] private TMP_Text recordsText;
     
     [Header("Map Generation Components")] 
     [SerializeField] private GameObject mapGenerationGroup;
@@ -16,9 +22,12 @@ public class ManagerUI : MonoBehaviour
 
     [Header("Path Generation Components")]
     [SerializeField] private GameObject pathGenerationGroup;
+    [SerializeField] private GameObject settingsGroup;
     [SerializeField] private Button startPathGenerationButton;
     [SerializeField] private Button generatePathButton;
     [SerializeField] private Button launchCharacterButton;
+    [SerializeField] private TMP_Dropdown algorithmDropdown;
+    [SerializeField] private TMP_Dropdown heuristicDropdown;
     
     [Header("Obstacle Generation Components")]
     [SerializeField] private GameObject obstacleGenerationGroup;
@@ -28,11 +37,13 @@ public class ManagerUI : MonoBehaviour
 
     public Action<int, int> OnMapGenerateClicked;
     public Action OnStartPathGenerationClicked;
-    public Action OnGeneratePathClicked;
+    public Action<Algorithm, Heuristic> OnGeneratePathClicked;
     public Action OnRandomizeObstaclesClicked;
     public Action OnDrawObstaclesClicked;
     public Action OnFinishDrawObstaclesClicked;
     public Action OnLaunchCharacterClicked;
+
+    private List<string> _recordList = new();
 
     private void Start()
     {
@@ -43,10 +54,12 @@ public class ManagerUI : MonoBehaviour
         drawObstaclesButton.onClick.AddListener(OnDrawObstacleButtonClicked);
         finishDrawingButton.onClick.AddListener(OnFinishDrawObstaclesButtonClicked);
         launchCharacterButton.onClick.AddListener(OnLaunchCharacterButtonClicked);
+        clearRecordsButton.onClick.AddListener(OnClearRecordsButtonClicked);
         
         generatePathButton.gameObject.SetActive(false);
         finishDrawingButton.gameObject.SetActive(false);
         launchCharacterButton.gameObject.SetActive(false);
+        settingsGroup.gameObject.SetActive(false);
 
         guideText.text = "Welcome to my demo! Use WASD to move around the map and click some self-explanatory buttons :)";
     }
@@ -63,6 +76,7 @@ public class ManagerUI : MonoBehaviour
         {
             case PathfindingSequenceUI.ChooseStartTile:
                 mapGenerationGroup.SetActive(false);
+                recordsGroup.SetActive(false);
                 obstacleGenerationGroup.SetActive(false);
                 startPathGenerationButton.gameObject.SetActive(false);
                 guideText.text = "Choose Start Tile";
@@ -72,13 +86,18 @@ public class ManagerUI : MonoBehaviour
                 break;
             case PathfindingSequenceUI.ReadyToFindPath:
                 guideText.text = "";
+                recordsGroup.SetActive(true);
+                settingsGroup.gameObject.SetActive(true);
                 generatePathButton.gameObject.SetActive(true);
                 break;
             case PathfindingSequenceUI.PathFound:
                 launchCharacterButton.gameObject.SetActive(true);
-                guideText.text = $"Path generated in {generationTime} seconds";
+                settingsGroup.gameObject.SetActive(false);
+                guideText.text = $"Path generated in {generationTime:F6} seconds";
+                AddRecord(generationTime);
                 break;
             case PathfindingSequenceUI.PathNotFound:
+                settingsGroup.gameObject.SetActive(false);
                 guideText.text = "No path between chosen cells!";
                 break;
             case PathfindingSequenceUI.PathReset:
@@ -98,6 +117,7 @@ public class ManagerUI : MonoBehaviour
                 pathGenerationGroup.SetActive(false);
                 drawObstaclesButton.gameObject.SetActive(false);
                 finishDrawingButton.gameObject.SetActive(true);
+                recordsGroup.SetActive(false);
                 break;
             case DrawObstaclesSequenceUI.FinishDrawing:
                 mapGenerationGroup.SetActive(true);
@@ -105,6 +125,7 @@ public class ManagerUI : MonoBehaviour
                 pathGenerationGroup.SetActive(true);
                 finishDrawingButton.gameObject.SetActive(false);
                 drawObstaclesButton.gameObject.SetActive(true);
+                recordsGroup.SetActive(true);
                 break;
         }
     }
@@ -115,6 +136,25 @@ public class ManagerUI : MonoBehaviour
             OnMapGenerateClicked?.Invoke(width, height);
         else
             Debug.Log("Can't generate a map, enter width and height!");
+    }
+
+    private void AddRecord(float time)
+    {
+        var algorithm = (Algorithm) algorithmDropdown.value;
+        var heuristic = (Heuristic) heuristicDropdown.value;
+        _recordList.Add($"A:{algorithm} H:{heuristic} T:{time:F6}");
+        
+        recordsText.text = "";
+        foreach (var record in _recordList)
+        {
+            recordsText.text += record + "\n";
+        }
+    }
+
+    private void OnClearRecordsButtonClicked()
+    {
+        recordsText.text = "";
+        _recordList.Clear();
     }
 
     private void OnRandomizeObstaclesButtonClicked()
@@ -147,7 +187,10 @@ public class ManagerUI : MonoBehaviour
 
     private void OnGeneratePathButtonClicked()
     {
-        OnGeneratePathClicked?.Invoke();
+        var algorithm = (Algorithm) algorithmDropdown.value;
+        var heuristic = (Heuristic) heuristicDropdown.value;
+        OnGeneratePathClicked?.Invoke(algorithm, heuristic);
+        
         generatePathButton.gameObject.SetActive(false);
         mapGenerationGroup.SetActive(true);
         obstacleGenerationGroup.SetActive(true);
@@ -168,5 +211,17 @@ public class ManagerUI : MonoBehaviour
     {
         StartDrawing,
         FinishDrawing
+    }
+
+    public enum Heuristic
+    {
+        Manhattan,
+        Chebyshev
+    }
+
+    public enum Algorithm
+    {
+        StarA,
+        JumpPointSearch
     }
 }

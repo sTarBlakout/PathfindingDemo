@@ -164,16 +164,18 @@ public class MapGenerator : MonoBehaviour
         _waypoints = new ValueTuple<Vector3Int, Vector3Int>(Vector3Int.one, Vector3Int.one);
     }
 
-    private void GeneratePath()
+    private void GeneratePath(ManagerUI.Algorithm algorithm, ManagerUI.Heuristic heuristic)
     {
         var timeBeforeGeneration = Time.realtimeSinceStartup;
         _path = FindPath(
             new Vector2Int(_waypoints.start.x, _waypoints.start.y), 
-            new Vector2Int(_waypoints.finish.x, _waypoints.finish.y));
-        var processingTime = Time.realtimeSinceStartup - timeBeforeGeneration;
+            new Vector2Int(_waypoints.finish.x, _waypoints.finish.y),
+            algorithm,
+            heuristic);
+        var generatingTime = Time.realtimeSinceStartup - timeBeforeGeneration;
         
         if (_path.Count == 0) managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathNotFound);
-        else managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathFound, processingTime);
+        else managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathFound, generatingTime);
         
         foreach (var node in _path)
         {
@@ -199,9 +201,9 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
-    private List<Vector2Int> FindPath(Vector2Int start, Vector2Int target)
+    private List<Vector2Int> FindPath(Vector2Int start, Vector2Int target, ManagerUI.Algorithm algorithm, ManagerUI.Heuristic heuristic)
     {
-        return _pathfinder.FindPath(_nodes, start, target);
+        return _pathfinder.FindPath(_nodes, start, target, heuristic);
     }
 
     private void LaunchCharacter()
