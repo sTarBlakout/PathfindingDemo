@@ -222,6 +222,6 @@ public class ManagerUI : MonoBehaviour
     public enum Algorithm
     {
         StarA,
-        JumpPointSearch
+        BFS
     }
 }

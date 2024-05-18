@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Pathfinders;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -27,6 +28,9 @@ public class MapGenerator : MonoBehaviour
     private List<Vector2Int> _path;
 
     private CurrentActivity _currentActivity;
+
+    private PathfinderStarA _pathfinderStarA;
+    private PathfinderBFS _pathfinderBFS;
 
     private void OnEnable()
     {
@@ -56,8 +60,7 @@ public class MapGenerator : MonoBehaviour
     {
         GenerateMap(startMapSize.x, startMapSize.y);
         managerUI.Init(startMapSize);
-        
-        _pathfinder = new PathfinderStarA();
+        WarmupPathfinders();
     }
 
     private void ProcessGridClick(Vector3 clickPos)
@@ -79,13 +82,13 @@ public class MapGenerator : MonoBehaviour
 
     private void MakeWaypointTile(Vector3Int cellPosition)
     {
-        if (_waypoints.start == Vector3Int.one)
+        if (_waypoints.start == -Vector3Int.one)
         {
             _waypoints.start = cellPosition;
             tilemap.SetTile(_waypoints.start, wayTile);
             managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.ChooseFinishTile);
         }
-        else if (_waypoints.finish == Vector3Int.one)
+        else if (_waypoints.finish == -Vector3Int.one)
         {
             if (cellPosition == _waypoints.start) return;
             _waypoints.finish = cellPosition;
@@ -112,6 +115,15 @@ public class MapGenerator : MonoBehaviour
         CenterCamera(width, height);
     }
 
+    // Need to "warmup" classes so the first generation time of algorithm was more real
+    private void WarmupPathfinders()
+    {
+        _pathfinderStarA = new PathfinderStarA();
+        _pathfinderBFS = new PathfinderBFS();
+        _pathfinderStarA.FindPath(_nodes, Vector2Int.zero, Vector2Int.one, ManagerUI.Heuristic.Manhattan);
+        _pathfinderBFS.FindPath(_nodes, Vector2Int.zero, Vector2Int.one, ManagerUI.Heuristic.Manhattan);
+    }
+    
     private void RandomizeObstacles()
     {
         ResetPath(traversableTile);
@@ -161,19 +173,19 @@ public class MapGenerator : MonoBehaviour
         }
 
         _path = null;
-        _waypoints = new ValueTuple<Vector3Int, Vector3Int>(Vector3Int.one, Vector3Int.one);
+        _waypoints = new ValueTuple<Vector3Int, Vector3Int>(-Vector3Int.one, -Vector3Int.one);
     }
 
     private void GeneratePath(ManagerUI.Algorithm algorithm, ManagerUI.Heuristic heuristic)
     {
-        var timeBeforeGeneration = Time.realtimeSinceStartup;
-        _path = FindPath(
-            new Vector2Int(_waypoints.start.x, _waypoints.start.y), 
-            new Vector2Int(_waypoints.finish.x, _waypoints.finish.y),
-            algorithm,
-            heuristic);
-        var generatingTime = Time.realtimeSinceStartup - timeBeforeGeneration;
+        IPathfinder pathfinder = algorithm == ManagerUI.Algorithm.StarA ? _pathfinderStarA : _pathfinderBFS;
+        var start = new Vector2Int(_waypoints.start.x, _waypoints.start.y);
+        var target = new Vector2Int(_waypoints.finish.x, _waypoints.finish.y);
         
+        var timeBeforeGeneration = Time.realtimeSinceStartup;
+        _path = pathfinder.FindPath(_nodes, start, target, heuristic);
+        var generatingTime = Time.realtimeSinceStartup - timeBeforeGeneration;
+
         if (_path.Count == 0) managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathNotFound);
         else managerUI.ProcessPathfindingSequence(ManagerUI.PathfindingSequenceUI.PathFound, generatingTime);
         
@@ -199,11 +211,6 @@ public class MapGenerator : MonoBehaviour
         {
             tilemap.SetTile(pos, null);
         }
-    }
-
-    private List<Vector2Int> FindPath(Vector2Int start, Vector2Int target, ManagerUI.Algorithm algorithm, ManagerUI.Heuristic heuristic)
-    {
-        return _pathfinder.FindPath(_nodes, start, target, heuristic);
     }
 
     private void LaunchCharacter()
