@@ -6513,7 +6513,7 @@ MonoBehaviour:
     m_Options:
     - m_Text: A*
       m_Image: {fileID: 0}
-    - m_Text: BFS
+    - m_Text: Greedy BFS
       m_Image: {fileID: 0}
   m_OnValueChanged:
     m_PersistentCalls:
